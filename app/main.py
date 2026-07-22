@@ -187,6 +187,26 @@ async def save_photo(upload: UploadFile | None) -> str:
     return str(dest)
 
 
+def regenerate_docs(cert: Certificate, case: AuthenticationCase) -> None:
+    p, h = make_certificate(cert, case)
+    cert.pdf_path = p
+    cert.report_path = make_report(cert, case)
+    cert.sha256 = h
+    cert.version += 1
+
+
+def parse_issued_at(value: str, fallback: datetime) -> datetime:
+    raw = (value or "").strip()
+    if not raw:
+        return fallback
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    raise HTTPException(400, "Некорректная дата выдачи")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -380,14 +400,110 @@ async def upload_case_photo(
     case.photo_path = await save_photo(photo)
     cert = db.scalar(select(Certificate).where(Certificate.case_id == case.id))
     if cert:
-        p, h = make_certificate(cert, case)
-        cert.pdf_path = p
-        cert.report_path = make_report(cert, case)
-        cert.sha256 = h
-        cert.version += 1
+        regenerate_docs(cert, case)
     db.add(AuditEvent(actor_email=user.email, action="CASE_PHOTO_UPDATED", entity_type="case", entity_id=str(case.id)))
     db.commit()
     return RedirectResponse("/admin", 303)
+
+
+@app.get("/admin/certificates/{cert_id}/edit", response_class=HTMLResponse)
+def edit_certificate_page(cert_id: int, request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    cert = db.get(Certificate, cert_id)
+    if not cert:
+        raise HTTPException(404)
+    presets = db.scalars(select(TextPreset).where(TextPreset.active == True).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)).all()
+    return templates.TemplateResponse(
+        "admin_edit_certificate.html",
+        {
+            "request": request,
+            "user": user,
+            "cert": cert,
+            "case": cert.case,
+            "conclusion_presets": [p for p in presets if p.kind == "conclusion"],
+            "feature_presets": [p for p in presets if p.kind == "notable_features"],
+            "issued_at_value": cert.issued_at.strftime("%Y-%m-%dT%H:%M"),
+        },
+    )
+
+
+@app.post("/admin/certificates/{cert_id}/edit")
+async def edit_certificate(
+    cert_id: int,
+    request: Request,
+    certificate_number: str = Form(...),
+    issued_at: str = Form(...),
+    status: str = Form("ACTIVE"),
+    revocation_reason: str = Form(""),
+    brand: str = Form(...),
+    model: str = Form("Не указана"),
+    category: str = Form("Сумка"),
+    color: str = Form("Не указан"),
+    material: str = Form("Не указан"),
+    serial_display: str = Form("Не предусмотрен / не указан"),
+    identifier_mode: str = Form("NONE"),
+    identifier_notes: str = Form(""),
+    verdict: str = Form("AUTHENTIC"),
+    conclusion: str = Form(""),
+    notable_features: str = Form(""),
+    photo: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+):
+    user = admin_required(request, db)
+    cert = db.get(Certificate, cert_id)
+    if not cert:
+        raise HTTPException(404)
+    case = cert.case
+    number = certificate_number.strip().upper()
+    conflict = db.scalar(
+        select(Certificate).where(Certificate.certificate_number == number, Certificate.id != cert.id)
+    )
+    if conflict:
+        raise HTTPException(400, "Номер сертификата уже используется")
+    if status not in {s.value for s in CertificateStatus}:
+        raise HTTPException(400, "Некорректный статус")
+
+    case.brand = brand.strip()
+    case.model = model.strip() or "Не указана"
+    case.category = category.strip() or "Сумка"
+    case.color = color.strip() or "Не указан"
+    case.material = material.strip() or "Не указан"
+    case.serial_display = serial_display.strip() or "Не предусмотрен / не указан"
+    case.identifier_mode = identifier_mode
+    case.identifier_notes = identifier_notes.strip()
+    case.verdict = verdict
+    case.conclusion = conclusion.strip()
+    case.notable_features = notable_features.strip()
+
+    new_photo = await save_photo(photo)
+    if new_photo:
+        case.photo_path = new_photo
+
+    cert.certificate_number = number
+    cert.issued_at = parse_issued_at(issued_at, cert.issued_at)
+    previous_status = cert.status
+    cert.status = status
+    if status == CertificateStatus.REVOKED.value:
+        if previous_status != CertificateStatus.REVOKED.value or not cert.revoked_at:
+            cert.revoked_at = datetime.utcnow()
+        cert.revocation_reason = revocation_reason.strip() or cert.revocation_reason or "Пересмотр заключения"
+    else:
+        cert.revoked_at = None
+        if status == CertificateStatus.ACTIVE.value:
+            cert.revocation_reason = ""
+
+    regenerate_docs(cert, case)
+    db.add(
+        AuditEvent(
+            actor_email=user.email,
+            action="CERTIFICATE_UPDATED",
+            entity_type="certificate",
+            entity_id=str(cert.id),
+            payload={"certificate_number": cert.certificate_number, "status": cert.status},
+        )
+    )
+    db.commit()
+    return RedirectResponse(f"/admin/certificates/{cert.id}/edit?saved=1", 303)
 
 
 @app.post("/admin/cases/{case_id}/issue")
@@ -398,7 +514,7 @@ def issue(case_id: int, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(404)
     existing = db.scalar(select(Certificate).where(Certificate.case_id == case.id))
     if existing:
-        return RedirectResponse(f"/v/{existing.public_token}", 303)
+        return RedirectResponse(f"/admin/certificates/{existing.id}/edit", 303)
     cert = Certificate(
         case_id=case.id,
         certificate_number=f"TVR-{datetime.utcnow():%y}-{db.query(Certificate).count() + 185:07d}",
@@ -414,7 +530,7 @@ def issue(case_id: int, request: Request, db: Session = Depends(get_db)):
     cert.sha256 = h
     db.add(AuditEvent(actor_email=user.email, action="CERTIFICATE_ISSUED", entity_type="certificate", entity_id=str(cert.id)))
     db.commit()
-    return RedirectResponse(f"/v/{cert.public_token}", 303)
+    return RedirectResponse(f"/admin/certificates/{cert.id}/edit", 303)
 
 
 @app.post("/admin/certificates/{cert_id}/revoke")

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Редактирование {{ cert.certificate_number }} — TheVerum{% endblock %}
+{% block content %}
+<main class="container section page">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">
+    <div>
+      <p class="muted"><a href="/admin">← Админка</a></p>
+      <h1 style="font-size:42px;margin:0">Редактирование сертификата</h1>
+      <p class="muted">{{ cert.certificate_number }} · версия {{ cert.version }} · <a href="/v/{{ cert.public_token }}" target="_blank">открыть публичную страницу</a></p>
+    </div>
+  </div>
+
+  {% if request.query_params.get('saved') %}
+  <div class="status active" style="margin-top:20px">Сохранено. PDF пересобраны, версия увеличена.</div>
+  {% endif %}
+
+  <form id="case-form" method="post" action="/admin/certificates/{{ cert.id }}/edit" enctype="multipart/form-data" class="panel" style="margin-top:24px;max-width:820px">
+    <h2 style="font-size:28px;margin-top:0">Сертификат</h2>
+    <div class="field"><label>Номер сертификата</label><input name="certificate_number" value="{{ cert.certificate_number }}" required></div>
+    <div class="field"><label>Дата и время выдачи</label><input type="datetime-local" name="issued_at" value="{{ issued_at_value }}" required></div>
+    <div class="field"><label>Статус</label>
+      <select name="status">
+        <option value="ACTIVE" {% if cert.status=='ACTIVE' %}selected{% endif %}>ACTIVE — действует</option>
+        <option value="UNDER_REVIEW" {% if cert.status=='UNDER_REVIEW' %}selected{% endif %}>UNDER_REVIEW — на пересмотре</option>
+        <option value="REVOKED" {% if cert.status=='REVOKED' %}selected{% endif %}>REVOKED — отозван</option>
+        <option value="SUPERSEDED" {% if cert.status=='SUPERSEDED' %}selected{% endif %}>SUPERSEDED — заменён</option>
+      </select>
+    </div>
+    <div class="field"><label>Причина отзыва (если отозван)</label><input name="revocation_reason" value="{{ cert.revocation_reason }}"></div>
+
+    <h2 style="font-size:28px">Изделие</h2>
+    <div class="field"><label>Бренд</label><input name="brand" value="{{ case.brand }}" required></div>
+    <div class="field"><label>Модель</label><input name="model" value="{{ case.model }}"></div>
+    <div class="field"><label>Категория</label>
+      <select name="category">
+        {% for cat in ['Сумка','Часы','Украшение','Одежда','Обувь','Аксессуар'] %}
+        <option {% if case.category==cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Цвет</label><input name="color" value="{{ case.color }}"></div>
+    <div class="field"><label>Материал</label><input name="material" value="{{ case.material }}"></div>
+    <div class="field"><label>Отображаемый идентификатор</label><input name="serial_display" value="{{ case.serial_display }}"></div>
+    <div class="field"><label>Тип идентификатора</label>
+      <select name="identifier_mode">
+        <option value="NONE" {% if case.identifier_mode=='NONE' %}selected{% endif %}>Нет / не предусмотрен</option>
+        <option value="SERIAL" {% if case.identifier_mode=='SERIAL' %}selected{% endif %}>Серийный номер</option>
+        <option value="NFC" {% if case.identifier_mode=='NFC' %}selected{% endif %}>NFC</option>
+        <option value="QR" {% if case.identifier_mode=='QR' %}selected{% endif %}>QR</option>
+        <option value="MIXED" {% if case.identifier_mode=='MIXED' %}selected{% endif %}>Несколько</option>
+      </select>
+    </div>
+    <div class="field"><label>Комментарий по идентификатору</label><textarea name="identifier_notes">{{ case.identifier_notes }}</textarea></div>
+
+    <h2 style="font-size:28px">Заключение</h2>
+    <div class="field"><label>Результат</label>
+      <select name="verdict">
+        <option value="AUTHENTIC" {% if case.verdict=='AUTHENTIC' %}selected{% endif %}>Подлинность подтверждена</option>
+        <option value="NOT_AUTHENTIC" {% if case.verdict=='NOT_AUTHENTIC' %}selected{% endif %}>Подлинность не подтверждена</option>
+        <option value="INCONCLUSIVE" {% if case.verdict=='INCONCLUSIVE' %}selected{% endif %}>Недостаточно данных</option>
+        <option value="PHYSICAL_REVIEW" {% if case.verdict=='PHYSICAL_REVIEW' %}selected{% endif %}>Требуется очная проверка</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Пресет краткого заключения</label>
+      <select id="preset-conclusion">
+        <option value="">— выбрать шаблон —</option>
+        {% for p in conclusion_presets %}
+        <option value="{{ p.id }}">{{ p.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Краткое заключение</label><textarea name="conclusion">{{ case.conclusion }}</textarea></div>
+
+    <div class="field">
+      <label>Пресет краткого отчета</label>
+      <select id="preset-notable">
+        <option value="">— выбрать шаблон —</option>
+        {% for p in feature_presets %}
+        <option value="{{ p.id }}">{{ p.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Важные особенности</label><textarea name="notable_features">{{ case.notable_features }}</textarea></div>
+    <p class="hero-actions">
+      <button type="button" class="btn" id="refill-presets">Подставить данные в выбранные пресеты</button>
+    </p>
+
+    <h2 style="font-size:28px">Фото</h2>
+    {% if case.photo_path %}
+    <div class="cert-photo-wrap" style="margin-bottom:14px">
+      <img class="cert-photo" src="/v/{{ cert.public_token }}/photo" alt="Текущее фото">
+    </div>
+    {% endif %}
+    <div class="field"><label>Заменить фото</label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+
+    <div class="hero-actions" style="margin-top:20px">
+      <button class="btn gold">Сохранить изменения</button>
+      <a class="btn" href="/v/{{ cert.public_token }}">Публичная страница</a>
+      <a class="btn" href="/admin">К списку</a>
+    </div>
+  </form>
+</main>
+<script>
+window.THEVERUM_PRESETS = {
+  conclusion: [
+    {% for p in conclusion_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  notable_features: [
+    {% for p in feature_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+};
+</script>
+<script src="/static/admin-presets.js"></script>
+{% endblock %}

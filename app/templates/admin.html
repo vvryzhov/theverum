@@ -93,10 +93,15 @@
               </form>
             </td>
             <td>{{ c.verdict }}</td>
-            <td>
-              <form method="post" action="/admin/cases/{{ c.id }}/issue">
+            <td style="white-space:nowrap">
+              {% set issued = certificates|selectattr('case_id', 'equalto', c.id)|list %}
+              {% if issued %}
+              <a class="btn" href="/admin/certificates/{{ issued[0].id }}/edit">Править</a>
+              {% else %}
+              <form method="post" action="/admin/cases/{{ c.id }}/issue" style="display:inline">
                 <button class="btn">Выпустить</button>
               </form>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -106,14 +111,16 @@
       <div class="panel" style="margin-top:20px">
         <h2 style="font-size:30px;margin-top:0">Сертификаты</h2>
         <table class="table">
-          <tr><th>№</th><th>Статус</th><th></th></tr>
+          <tr><th>№</th><th>Дата</th><th>Статус</th><th></th></tr>
           {% for c in certificates %}
           <tr>
             <td><a href="/v/{{ c.public_token }}">{{ c.certificate_number }}</a></td>
+            <td>{{ c.issued_at.strftime('%d.%m.%Y') }}</td>
             <td>{{ c.status }}</td>
-            <td>
+            <td style="white-space:nowrap">
+              <a class="btn" href="/admin/certificates/{{ c.id }}/edit">Править</a>
               {% if c.status=='ACTIVE' %}
-              <form method="post" action="/admin/certificates/{{ c.id }}/revoke">
+              <form method="post" action="/admin/certificates/{{ c.id }}/revoke" style="display:inline">
                 <input type="hidden" name="reason" value="Пересмотр заключения">
                 <button class="btn">Отозвать</button>
               </form>
