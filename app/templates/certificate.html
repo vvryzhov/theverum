@@ -1,1 +1,39 @@
-{% extends "base.html" %}{% block title %}{{ certificate.certificate_number }} - TheVerum{% endblock %}{% block content %}<main class="container cert-page"><section class="panel"><p class="muted">СЕРТИФИКАТ {{ certificate.certificate_number }}</p><div class="status {{ 'active' if certificate.status=='ACTIVE' else 'revoked' }}"><h2 style="margin:0;font-size:36px">{{ 'ДЕЙСТВИТЕЛЕН' if certificate.status=='ACTIVE' else certificate.status }}</h2><p>{{ 'Подлинность подтверждена' if case.verdict=='AUTHENTIC' else 'Результат: '+case.verdict }}</p></div><dl class="facts"><dt>Бренд</dt><dd>{{ case.brand }}</dd><dt>Модель</dt><dd>{{ case.model }}</dd><dt>Категория</dt><dd>{{ case.category }}</dd><dt>Цвет</dt><dd>{{ case.color }}</dd><dt>Материал</dt><dd>{{ case.material }}</dd><dt>Идентификатор</dt><dd>{{ case.serial_display }}</dd><dt>Дата выдачи</dt><dd>{{ certificate.issued_at.strftime('%d.%m.%Y') }}</dd><dt>Версия</dt><dd>{{ certificate.version }}</dd></dl>{% if certificate.status!='ACTIVE' %}<p><strong>Причина:</strong> {{ certificate.revocation_reason }}</p>{% endif %}</section><aside class="panel"><h3>Документы</h3><p><a class="btn dark" href="/v/{{ certificate.public_token }}/certificate.pdf">Скачать сертификат PDF</a></p><p><a class="btn" href="/v/{{ certificate.public_token }}/report.pdf">Скачать краткий отчет PDF</a></p><p class="notice">Публичная страница является источником актуального статуса. PDF отражает состояние на момент его формирования.</p></aside></main>{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ certificate.certificate_number }} — TheVerum{% endblock %}
+{% block content %}
+<main class="container cert-page">
+  <section class="panel">
+    <p class="muted">СЕРТИФИКАТ {{ certificate.certificate_number }}</p>
+    <div class="status {{ 'active' if certificate.status=='ACTIVE' else 'revoked' }}">
+      <h2 style="margin:0;font-size:36px">{{ 'ДЕЙСТВИТЕЛЕН' if certificate.status=='ACTIVE' else certificate.status }}</h2>
+      <p>{{ 'Подлинность подтверждена' if case.verdict=='AUTHENTIC' else 'Результат: '+case.verdict }}</p>
+    </div>
+
+    {% if case.photo_path %}
+    <div class="cert-photo-wrap">
+      <img class="cert-photo" src="/v/{{ certificate.public_token }}/photo" alt="Фото изделия">
+    </div>
+    {% endif %}
+
+    <dl class="facts">
+      <dt>Бренд</dt><dd>{{ case.brand }}</dd>
+      <dt>Модель</dt><dd>{{ case.model }}</dd>
+      <dt>Категория</dt><dd>{{ case.category }}</dd>
+      <dt>Цвет</dt><dd>{{ case.color }}</dd>
+      <dt>Материал</dt><dd>{{ case.material }}</dd>
+      <dt>Идентификатор</dt><dd>{{ case.serial_display }}</dd>
+      <dt>Дата выдачи</dt><dd>{{ certificate.issued_at.strftime('%d.%m.%Y') }}</dd>
+      <dt>Версия</dt><dd>{{ certificate.version }}</dd>
+    </dl>
+    {% if certificate.status!='ACTIVE' %}
+    <p><strong>Причина:</strong> {{ certificate.revocation_reason }}</p>
+    {% endif %}
+  </section>
+  <aside class="panel">
+    <h3>Документы</h3>
+    <p><a class="btn dark" href="/v/{{ certificate.public_token }}/certificate.pdf">Скачать сертификат PDF</a></p>
+    <p><a class="btn" href="/v/{{ certificate.public_token }}/report.pdf">Скачать краткий отчет PDF</a></p>
+    <p class="notice">Публичная страница является источником актуального статуса. PDF отражает состояние на момент его формирования.</p>
+  </aside>
+</main>
+{% endblock %}

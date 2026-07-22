@@ -37,11 +37,19 @@ def make_certificate(cert, case):
     c.setFont("NotoB", 24); c.drawCentredString(w/2,h-155,"СЕРТИФИКАТ ПОДЛИННОСТИ")
     c.setFont("Noto", 11); c.setFillColor(colors.HexColor('#8a6c2d')); c.drawCentredString(w/2,h-178,cert.certificate_number)
     c.setFillColor(colors.black)
+    photo = getattr(case, "photo_path", "") or ""
+    left = 72
+    if photo and Path(photo).exists():
+        try:
+            c.drawImage(photo, w-210, h-360, width=130, height=160, preserveAspectRatio=True, mask='auto')
+            left = 72
+        except Exception:
+            photo = ""
     y=h-235
     fields=[("Бренд",case.brand),("Модель",case.model),("Категория",case.category),("Цвет",case.color),("Материал",case.material),("Идентификатор",case.serial_display),("Дата проверки",cert.issued_at.strftime('%d.%m.%Y'))]
     for label,val in fields:
-        c.setFont("NotoB",8); c.drawString(72,y,label.upper())
-        c.setFont("Noto",10); c.drawString(205,y,str(val)[:48]); c.setStrokeColor(colors.HexColor('#ded9ce')); c.line(72,y-7,w-72,y-7); y-=34
+        c.setFont("NotoB",8); c.drawString(left,y,label.upper())
+        c.setFont("Noto",10); c.drawString(left+133,y,str(val)[:40 if photo else 48]); c.setStrokeColor(colors.HexColor('#ded9ce')); c.line(left,y-7,(w-220 if photo else w-72),y-7); y-=34
     verdict=_verdict_text(case.verdict)
     c.setFillColor(colors.HexColor('#176b39') if case.verdict=='AUTHENTIC' else colors.HexColor('#8b2e2e'))
     c.roundRect(55,210,w-110,76,8,stroke=1,fill=0)

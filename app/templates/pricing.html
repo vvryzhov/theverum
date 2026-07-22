@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Цены — TheVerum{% endblock %}
+{% block content %}
+<main class="container section page">
+  <p class="muted">СТОИМОСТЬ</p>
+  <h1>Цены на проверку</h1>
+  <p class="lead">Тарифы зависят от формата экспертизы и категории изделия. Итоговая стоимость подтверждается до начала работы.</p>
+
+  {% if blocks %}
+  <div class="price-grid">
+    {% for b in blocks %}
+    <article class="card price-card">
+      <p class="muted">{{ '%02d'|format(loop.index) }}</p>
+      <h2>{{ b.title }}</h2>
+      <div class="price-value">{{ b.price_label }}</div>
+      <p class="muted">{{ b.description }}</p>
+      {% if b.features %}
+      <ul class="plain-list">
+        {% for line in b.features.splitlines() if line.strip() %}
+        <li>{{ line.strip() }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="panel"><p class="muted">Тарифы скоро появятся. Напишите нам для индивидуального расчёта.</p></div>
+  {% endif %}
+
+  <section class="panel note-panel" style="margin-top:28px">
+    <h2 style="font-size:28px;margin-top:0">Как оплачивается работа</h2>
+    <p class="muted">Перед стартом фиксируем состав услуги и стоимость. Если по материалам нельзя дать однозначный ответ, предложим очную экспертизу или вернём часть оплаты по правилам оферты — без скрытых доплат «за сюрприз».</p>
+    <p><a href="/offer">Публичная оферта</a> · <a href="/terms">Пользовательское соглашение</a></p>
+  </section>
+</main>
+{% endblock %}

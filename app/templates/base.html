@@ -1,1 +1,35 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}TheVerum{% endblock %}</title><link rel="stylesheet" href="/static/style.css"></head><body><header><div class="container nav"><a class="brand" href="/">THEVERUM</a><nav class="links"><a href="/#process">Как проходит проверка</a><a href="/verify">Проверить сертификат</a><a href="/login">Вход</a></nav><a class="btn dark" href="/verify">Проверить сертификат</a></div></header>{% block content %}{% endblock %}<footer><div class="container">© TheVerum. Независимая экспертиза предметов роскоши. Не является представителем брендов-производителей.</div></footer></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}TheVerum{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <a class="brand" href="/">THEVERUM</a>
+    <nav class="links">
+      <a href="/process">Как проходит проверка</a>
+      <a href="/pricing">Цены</a>
+      <a href="/verify">Проверить сертификат</a>
+      <a href="/login">Вход</a>
+    </nav>
+    <a class="btn dark" href="/verify">Проверить сертификат</a>
+  </div>
+</header>
+{% block content %}{% endblock %}
+<footer>
+  <div class="container footer-grid">
+    <div>© TheVerum. Независимая экспертиза предметов роскоши. Не является представителем брендов-производителей.</div>
+    <div class="footer-links">
+      <a href="/process">Проверка</a>
+      <a href="/pricing">Цены</a>
+      <a href="/terms">Пользовательское соглашение</a>
+      <a href="/offer">Публичная оферта</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

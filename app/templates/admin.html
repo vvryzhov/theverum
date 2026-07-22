@@ -1,1 +1,140 @@
-{% extends "base.html" %}{% block title %}Администрирование - TheVerum{% endblock %}{% block content %}<main class="container section"><div style="display:flex;justify-content:space-between"><div><p class="muted">АДМИНИСТРАТОР</p><h1 style="font-size:50px">Заявки и сертификаты</h1></div><a href="/logout">Выйти</a></div><div class="admin-grid"><section class="panel"><h2 style="font-size:30px">Новая завершенная проверка</h2><form method="post" action="/admin/cases"><div class="field"><label>Бренд</label><input name="brand" required></div><div class="field"><label>Модель</label><input name="model"></div><div class="field"><label>Категория</label><select name="category"><option>Сумка</option><option>Часы</option><option>Украшение</option><option>Одежда</option><option>Обувь</option><option>Аксессуар</option></select></div><div class="field"><label>Цвет</label><input name="color"></div><div class="field"><label>Материал</label><input name="material"></div><div class="field"><label>Отображаемый идентификатор</label><input name="serial_display" value="Не предусмотрен / не указан"></div><div class="field"><label>Тип идентификатора</label><select name="identifier_mode"><option value="NONE">Нет / не предусмотрен</option><option value="SERIAL">Серийный номер</option><option value="NFC">NFC</option><option value="QR">QR</option><option value="MIXED">Несколько</option></select></div><div class="field"><label>Комментарий по идентификатору</label><textarea name="identifier_notes"></textarea></div><div class="field"><label>Результат</label><select name="verdict"><option value="AUTHENTIC">Подлинность подтверждена</option><option value="NOT_AUTHENTIC">Подлинность не подтверждена</option><option value="INCONCLUSIVE">Недостаточно данных</option><option value="PHYSICAL_REVIEW">Требуется очная проверка</option></select></div><div class="field"><label>Краткое заключение</label><textarea name="conclusion"></textarea></div><div class="field"><label>Важные особенности</label><textarea name="notable_features"></textarea></div><button class="btn gold">Сохранить проверку</button></form></section><section><div class="panel"><h2 style="font-size:30px">Проверки</h2><table class="table"><tr><th>№</th><th>Изделие</th><th>Результат</th><th></th></tr>{% for c in cases %}<tr><td>{{ c.case_number }}</td><td>{{ c.brand }} {{ c.model }}</td><td>{{ c.verdict }}</td><td><form method="post" action="/admin/cases/{{ c.id }}/issue"><button class="btn">Выпустить</button></form></td></tr>{% endfor %}</table></div><div class="panel" style="margin-top:20px"><h2 style="font-size:30px">Сертификаты</h2><table class="table"><tr><th>№</th><th>Статус</th><th></th></tr>{% for c in certificates %}<tr><td><a href="/v/{{ c.public_token }}">{{ c.certificate_number }}</a></td><td>{{ c.status }}</td><td>{% if c.status=='ACTIVE' %}<form method="post" action="/admin/certificates/{{ c.id }}/revoke"><input type="hidden" name="reason" value="Пересмотр заключения"><button class="btn">Отозвать</button></form>{% endif %}</td></tr>{% endfor %}</table></div></section></div></main>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Администрирование — TheVerum{% endblock %}
+{% block content %}
+<main class="container section">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">
+    <div>
+      <p class="muted">АДМИНИСТРАТОР</p>
+      <h1 style="font-size:50px;margin:0">Заявки, сертификаты и цены</h1>
+    </div>
+    <a href="/logout">Выйти</a>
+  </div>
+
+  <div class="admin-grid" style="margin-top:28px">
+    <section class="panel">
+      <h2 style="font-size:30px;margin-top:0">Новая завершенная проверка</h2>
+      <form method="post" action="/admin/cases" enctype="multipart/form-data">
+        <div class="field"><label>Бренд</label><input name="brand" required></div>
+        <div class="field"><label>Модель</label><input name="model"></div>
+        <div class="field"><label>Категория</label>
+          <select name="category">
+            <option>Сумка</option><option>Часы</option><option>Украшение</option>
+            <option>Одежда</option><option>Обувь</option><option>Аксессуар</option>
+          </select>
+        </div>
+        <div class="field"><label>Цвет</label><input name="color"></div>
+        <div class="field"><label>Материал</label><input name="material"></div>
+        <div class="field"><label>Отображаемый идентификатор</label><input name="serial_display" value="Не предусмотрен / не указан"></div>
+        <div class="field"><label>Тип идентификатора</label>
+          <select name="identifier_mode">
+            <option value="NONE">Нет / не предусмотрен</option>
+            <option value="SERIAL">Серийный номер</option>
+            <option value="NFC">NFC</option>
+            <option value="QR">QR</option>
+            <option value="MIXED">Несколько</option>
+          </select>
+        </div>
+        <div class="field"><label>Комментарий по идентификатору</label><textarea name="identifier_notes"></textarea></div>
+        <div class="field"><label>Результат</label>
+          <select name="verdict">
+            <option value="AUTHENTIC">Подлинность подтверждена</option>
+            <option value="NOT_AUTHENTIC">Подлинность не подтверждена</option>
+            <option value="INCONCLUSIVE">Недостаточно данных</option>
+            <option value="PHYSICAL_REVIEW">Требуется очная проверка</option>
+          </select>
+        </div>
+        <div class="field"><label>Краткое заключение</label><textarea name="conclusion"></textarea></div>
+        <div class="field"><label>Важные особенности</label><textarea name="notable_features"></textarea></div>
+        <div class="field"><label>Фото для сертификата</label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+        <button class="btn gold">Сохранить проверку</button>
+      </form>
+    </section>
+
+    <section>
+      <div class="panel">
+        <h2 style="font-size:30px;margin-top:0">Проверки</h2>
+        <table class="table">
+          <tr><th>№</th><th>Изделие</th><th>Фото</th><th>Результат</th><th></th></tr>
+          {% for c in cases %}
+          <tr>
+            <td>{{ c.case_number }}</td>
+            <td>{{ c.brand }} {{ c.model }}</td>
+            <td>
+              {% if c.photo_path %}<span class="muted">есть</span>{% else %}<span class="muted">нет</span>{% endif %}
+              <form method="post" action="/admin/cases/{{ c.id }}/photo" enctype="multipart/form-data" class="inline-upload">
+                <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required>
+                <button class="btn">Загрузить</button>
+              </form>
+            </td>
+            <td>{{ c.verdict }}</td>
+            <td>
+              <form method="post" action="/admin/cases/{{ c.id }}/issue">
+                <button class="btn">Выпустить</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+
+      <div class="panel" style="margin-top:20px">
+        <h2 style="font-size:30px;margin-top:0">Сертификаты</h2>
+        <table class="table">
+          <tr><th>№</th><th>Статус</th><th></th></tr>
+          {% for c in certificates %}
+          <tr>
+            <td><a href="/v/{{ c.public_token }}">{{ c.certificate_number }}</a></td>
+            <td>{{ c.status }}</td>
+            <td>
+              {% if c.status=='ACTIVE' %}
+              <form method="post" action="/admin/certificates/{{ c.id }}/revoke">
+                <input type="hidden" name="reason" value="Пересмотр заключения">
+                <button class="btn">Отозвать</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" id="prices" style="margin-top:28px">
+    <h2 style="font-size:30px;margin-top:0">Блоки цен</h2>
+    <p class="muted">Эти блоки отображаются на публичной странице <a href="/pricing">/pricing</a>.</p>
+
+    <div class="price-admin-grid">
+      {% for p in prices %}
+      <form method="post" action="/admin/prices/{{ p.id }}" class="price-edit card">
+        <div class="field"><label>Название</label><input name="title" value="{{ p.title }}" required></div>
+        <div class="field"><label>Цена</label><input name="price_label" value="{{ p.price_label }}" required></div>
+        <div class="field"><label>Описание</label><textarea name="description">{{ p.description }}</textarea></div>
+        <div class="field"><label>Пункты (каждый с новой строки)</label><textarea name="features">{{ p.features }}</textarea></div>
+        <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="{{ p.sort_order }}"></div>
+        <div class="field"><label>Активен</label>
+          <select name="active">
+            <option value="1" {% if p.active %}selected{% endif %}>Да</option>
+            <option value="0" {% if not p.active %}selected{% endif %}>Нет</option>
+          </select>
+        </div>
+        <div class="hero-actions">
+          <button class="btn gold">Сохранить</button>
+          <button class="btn" formaction="/admin/prices/{{ p.id }}/delete" formmethod="post" onclick="return confirm('Удалить блок?')">Удалить</button>
+        </div>
+      </form>
+      {% endfor %}
+
+      <form method="post" action="/admin/prices" class="price-edit card">
+        <h3 style="margin-top:0">Новый блок</h3>
+        <div class="field"><label>Название</label><input name="title" required placeholder="Дистанционная проверка"></div>
+        <div class="field"><label>Цена</label><input name="price_label" required placeholder="от 4 900 ₽"></div>
+        <div class="field"><label>Описание</label><textarea name="description"></textarea></div>
+        <div class="field"><label>Пункты (каждый с новой строки)</label><textarea name="features"></textarea></div>
+        <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="10"></div>
+        <button class="btn gold">Добавить</button>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -21,6 +21,9 @@ htmlcov/
 Thumbs.db
 app/generated/*
 !app/generated/.gitkeep
+!app/generated/photos/
+app/generated/photos/*
+!app/generated/photos/.gitkeep
 *.pdf
 .idea/
 .vscode/
