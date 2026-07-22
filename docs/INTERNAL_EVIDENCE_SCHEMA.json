@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "public_document_policy": "minimal",
+  "identifier_expectation": [
+    "REQUIRED",
+    "EXPECTED",
+    "OPTIONAL",
+    "NOT_EXPECTED",
+    "UNKNOWN"
+  ],
+  "identifier_observation": [
+    "PRESENT",
+    "ABSENT",
+    "NOT_VISIBLE",
+    "DAMAGED",
+    "UNREADABLE"
+  ],
+  "evidence_groups": [
+    "identity_and_period",
+    "materials",
+    "construction",
+    "hardware",
+    "markings",
+    "identifiers",
+    "alterations",
+    "image_integrity"
+  ],
+  "rule": "No single identifier is sufficient by itself; absence is evaluated against model and production period."
+}
