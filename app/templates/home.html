@@ -12,15 +12,60 @@
         <a class="btn" href="/contact">Оставить заявку</a>
       </p>
     </div>
-    <div class="hero-card">
-      <div class="brand">THE VERUM</div>
-      <div>
-        <p class="muted" style="color:#bbb">СЕРТИФИКАТ TVR-26-0000184</p>
-        <div class="verdict">Подлинность подтверждена</div>
-        <p>Актуальный статус доступен в публичном реестре.</p>
+
+    <aside class="hero-showcase" aria-label="Примеры сертификатов">
+      {% set featured = examples[0] if examples else none %}
+      {% if featured %}
+      <a class="hero-cert" href="/v/{{ featured.public_token }}">
+        <div class="hero-cert-top">
+          <span class="hero-cert-brand">THE VERUM</span>
+          <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+        </div>
+        <p class="hero-cert-num">{{ featured.certificate_number }}</p>
+        <div class="hero-cert-verdict">Подлинность подтверждена</div>
+        <dl class="hero-cert-meta">
+          <div><dt>Бренд</dt><dd>{{ featured.case.brand }}</dd></div>
+          <div><dt>Модель</dt><dd>{{ featured.case.model }}</dd></div>
+        </dl>
+        <div class="hero-cert-cta">Открыть пример сертификата →</div>
+      </a>
+      {% else %}
+      <a class="hero-cert" href="/v/demo-certificate">
+        <div class="hero-cert-top">
+          <span class="hero-cert-brand">THE VERUM</span>
+          <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+        </div>
+        <p class="hero-cert-num">TVR-26-0000184</p>
+        <div class="hero-cert-verdict">Подлинность подтверждена</div>
+        <dl class="hero-cert-meta">
+          <div><dt>Бренд</dt><dd>CHANEL</dd></div>
+          <div><dt>Модель</dt><dd>Classic Flap Bag</dd></div>
+        </dl>
+        <div class="hero-cert-cta">Открыть пример сертификата →</div>
+      </a>
+      {% endif %}
+
+      {% if examples and examples|length > 1 %}
+      <div class="hero-examples">
+        <p class="hero-examples-label">Другие примеры</p>
+        <div class="hero-example-links">
+          {% for cert in examples[1:] %}
+          <a class="hero-example-link" href="/v/{{ cert.public_token }}">
+            <span class="hero-example-title">{{ cert.case.brand }} {{ cert.case.model }}</span>
+            <span class="hero-example-num">{{ cert.certificate_number }}</span>
+          </a>
+          {% endfor %}
+        </div>
       </div>
-      <div>QR • PDF • Живая страница</div>
-    </div>
+      {% elif featured %}
+      <div class="hero-examples">
+        <div class="hero-example-links">
+          <a class="hero-example-link" href="/v/{{ featured.public_token }}/certificate.pdf">Скачать PDF сертификата</a>
+          <a class="hero-example-link" href="/v/{{ featured.public_token }}/report.pdf">Скачать краткий отчет</a>
+        </div>
+      </div>
+      {% endif %}
+    </aside>
   </section>
 
   <section class="section" id="process">

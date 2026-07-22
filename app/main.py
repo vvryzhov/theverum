@@ -213,8 +213,27 @@ def health():
 
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse("home.html", {"request": request})
+def home(request: Request, db: Session = Depends(get_db)):
+    examples = db.scalars(
+        select(Certificate)
+        .where(Certificate.status == CertificateStatus.ACTIVE.value)
+        .order_by(Certificate.id.desc())
+        .limit(4)
+    ).all()
+    demo = db.scalar(select(Certificate).where(Certificate.public_token == "demo-certificate"))
+    if demo and demo not in examples:
+        examples = [demo] + list(examples)
+    # unique by id, keep order, max 3
+    seen = set()
+    unique = []
+    for cert in examples:
+        if cert.id in seen:
+            continue
+        seen.add(cert.id)
+        unique.append(cert)
+        if len(unique) >= 3:
+            break
+    return templates.TemplateResponse("home.html", {"request": request, "examples": unique})
 
 
 @app.get("/process", response_class=HTMLResponse)
