@@ -14,7 +14,7 @@ from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Ver
 from .security import hash_password, verify_password, create_token, read_token
 from .documents import make_certificate, make_report
 
-app = FastAPI(title="TheVerum", version="1.0.0")
+app = FastAPI(title="The Verum", version="1.0.0")
 Base.metadata.create_all(bind=engine)
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -36,7 +36,7 @@ def seed():
         if not admin:
             db.add(User(
                 email=settings.admin_email,
-                full_name="Администратор TheVerum",
+                full_name="Администратор The Verum",
                 password_hash=hash_password(settings.admin_password),
                 role=Role.ADMIN.value,
             ))

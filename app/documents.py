@@ -32,7 +32,7 @@ def make_certificate(cert, case):
     c = canvas.Canvas(str(path), pagesize=A4)
     w,h=A4
     c.setStrokeColor(colors.HexColor('#b79a57')); c.setLineWidth(1); c.rect(24,24,w-48,h-48)
-    c.setFont("NotoB", 22); c.drawCentredString(w/2,h-78,"THEVERUM")
+    c.setFont("NotoB", 22); c.drawCentredString(w/2,h-78,"THE VERUM")
     c.setFont("Noto", 8); c.drawCentredString(w/2,h-96,"НЕЗАВИСИМАЯ ЭКСПЕРТИЗА ПРЕДМЕТОВ РОСКОШИ")
     c.setFont("NotoB", 24); c.drawCentredString(w/2,h-155,"СЕРТИФИКАТ ПОДЛИННОСТИ")
     c.setFont("Noto", 11); c.setFillColor(colors.HexColor('#8a6c2d')); c.drawCentredString(w/2,h-178,cert.certificate_number)
@@ -54,7 +54,7 @@ def make_certificate(cert, case):
     c.setFillColor(colors.HexColor('#176b39') if case.verdict=='AUTHENTIC' else colors.HexColor('#8b2e2e'))
     c.roundRect(55,210,w-110,76,8,stroke=1,fill=0)
     c.setFont("NotoB",18); c.drawCentredString(w/2,252,verdict)
-    c.setFont("Noto",9); c.drawCentredString(w/2,232,"Результат независимой экспертной проверки TheVerum")
+    c.setFont("Noto",9); c.drawCentredString(w/2,232,"Результат независимой экспертной проверки The Verum")
     url=f"{settings.app_url}/v/{cert.public_token}"
     c.drawImage(_qr(url),65,70,90,90)
     c.setFillColor(colors.black); c.setFont("NotoB",8); c.drawString(168,135,"ПРОВЕРИТЬ СЕРТИФИКАТ")
@@ -68,7 +68,7 @@ def make_report(cert, case):
     path=OUT/f"{cert.certificate_number}_report.pdf"
     c=canvas.Canvas(str(path),pagesize=A4); w,h=A4
     def header(page):
-        c.setFont("NotoB",14); c.drawString(45,h-48,"THEVERUM")
+        c.setFont("NotoB",14); c.drawString(45,h-48,"THE VERUM")
         c.setFont("NotoB",14); c.drawString(45,h-82,"ОТЧЕТ ОБ ЭКСПЕРТИЗЕ")
         c.setFont("Noto",8); c.drawRightString(w-45,h-48,f"{cert.certificate_number}  •  стр. {page}")
         c.setStrokeColor(colors.HexColor('#d9d4ca')); c.line(45,h-92,w-45,h-92)

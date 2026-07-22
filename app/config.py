@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    app_name: str = "TheVerum"
+    app_name: str = "The Verum"
     app_url: str = "http://localhost:8080"
     secret_key: str = "dev-secret-change-me"
     admin_email: str = "admin@theverum.ru"
