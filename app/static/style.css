@@ -34,8 +34,8 @@ textarea{min-height:90px;resize:vertical}
 .facts{display:grid;grid-template-columns:140px 1fr;gap:10px 20px;font-family:Arial,sans-serif}
 .facts dt{color:var(--muted);font-size:13px}
 .facts dd{margin:0}
-.cert-photo-wrap{margin:18px 0 8px}
-.cert-photo{width:100%;max-height:360px;object-fit:cover;border:1px solid var(--line);background:#fff}
+.cert-photo-wrap{margin:18px 0 8px;display:flex;justify-content:center;align-items:center;background:#fff;border:1px solid var(--line);padding:12px;min-height:120px}
+.cert-photo{display:block;max-width:100%;width:auto;height:auto;max-height:420px;object-fit:contain}
 .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .table{width:100%;border-collapse:collapse;font-size:13px;font-family:Arial,sans-serif}
 .table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
