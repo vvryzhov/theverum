@@ -17,52 +17,52 @@
       {% set featured = examples[0] if examples else none %}
       {% if featured %}
       <a class="hero-cert" href="/v/{{ featured.public_token }}">
-        <div class="hero-cert-top">
-          <span class="hero-cert-brand">THE VERUM</span>
-          <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+        <div class="hero-cert-frame">
+          <div class="hero-cert-top">
+            <span class="hero-cert-brand">THE VERUM</span>
+            <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+          </div>
+          <p class="hero-cert-num">{{ featured.certificate_number }}</p>
+          <div class="hero-cert-verdict">Подлинность подтверждена</div>
+          <div class="hero-cert-meta">
+            <div class="hero-cert-row"><span>Бренд</span><strong>{{ featured.case.brand }}</strong></div>
+            <div class="hero-cert-row"><span>Модель</span><strong>{{ featured.case.model }}</strong></div>
+          </div>
+          <div class="hero-cert-cta"><span>Открыть пример сертификата</span><span aria-hidden="true">→</span></div>
         </div>
-        <p class="hero-cert-num">{{ featured.certificate_number }}</p>
-        <div class="hero-cert-verdict">Подлинность подтверждена</div>
-        <dl class="hero-cert-meta">
-          <div><dt>Бренд</dt><dd>{{ featured.case.brand }}</dd></div>
-          <div><dt>Модель</dt><dd>{{ featured.case.model }}</dd></div>
-        </dl>
-        <div class="hero-cert-cta">Открыть пример сертификата →</div>
       </a>
       {% else %}
       <a class="hero-cert" href="/v/demo-certificate">
-        <div class="hero-cert-top">
-          <span class="hero-cert-brand">THE VERUM</span>
-          <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+        <div class="hero-cert-frame">
+          <div class="hero-cert-top">
+            <span class="hero-cert-brand">THE VERUM</span>
+            <span class="hero-cert-badge">ДЕЙСТВИТЕЛЕН</span>
+          </div>
+          <p class="hero-cert-num">TVR-26-0000184</p>
+          <div class="hero-cert-verdict">Подлинность подтверждена</div>
+          <div class="hero-cert-meta">
+            <div class="hero-cert-row"><span>Бренд</span><strong>CHANEL</strong></div>
+            <div class="hero-cert-row"><span>Модель</span><strong>Classic Flap Bag</strong></div>
+          </div>
+          <div class="hero-cert-cta"><span>Открыть пример сертификата</span><span aria-hidden="true">→</span></div>
         </div>
-        <p class="hero-cert-num">TVR-26-0000184</p>
-        <div class="hero-cert-verdict">Подлинность подтверждена</div>
-        <dl class="hero-cert-meta">
-          <div><dt>Бренд</dt><dd>CHANEL</dd></div>
-          <div><dt>Модель</dt><dd>Classic Flap Bag</dd></div>
-        </dl>
-        <div class="hero-cert-cta">Открыть пример сертификата →</div>
       </a>
       {% endif %}
 
       {% if examples and examples|length > 1 %}
       <div class="hero-examples">
         <p class="hero-examples-label">Другие примеры</p>
-        <div class="hero-example-links">
-          {% for cert in examples[1:] %}
-          <a class="hero-example-link" href="/v/{{ cert.public_token }}">
-            <span class="hero-example-title">{{ cert.case.brand }} {{ cert.case.model }}</span>
-            <span class="hero-example-num">{{ cert.certificate_number }}</span>
-          </a>
-          {% endfor %}
-        </div>
+        {% for cert in examples[1:] %}
+        <a class="hero-example-link" href="/v/{{ cert.public_token }}">
+          <span class="hero-example-title">{{ cert.case.brand }} {{ cert.case.model }}</span>
+          <span class="hero-example-num">{{ cert.certificate_number }}</span>
+        </a>
+        {% endfor %}
       </div>
       {% elif featured %}
       <div class="hero-examples">
-        <div class="hero-example-links">
-          <a class="hero-example-link" href="/v/{{ featured.public_token }}/certificate.pdf">Скачать PDF сертификата</a>
-          <a class="hero-example-link" href="/v/{{ featured.public_token }}/report.pdf">Скачать краткий отчет</a>
-        </div>
+        <a class="hero-example-link" href="/v/{{ featured.public_token }}/certificate.pdf">Скачать PDF сертификата</a>
+        <a class="hero-example-link" href="/v/{{ featured.public_token }}/report.pdf">Скачать краткий отчет</a>
       </div>
       {% endif %}
     </aside>
