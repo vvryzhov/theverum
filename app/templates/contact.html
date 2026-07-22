@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Обратная связь — TheVerum{% endblock %}
+{% block content %}
+<main class="container section page">
+  <p class="muted">ЗАЯВКА</p>
+  <h1>Обратная связь</h1>
+  <p class="lead">Оставьте заявку на консультацию или проверку изделия. Мы свяжемся с вами и подскажем формат экспертизы.</p>
+
+  {% if sent %}
+  <div class="status active">Заявка отправлена. Мы ответим на указанные контакты.</div>
+  {% endif %}
+
+  <form method="post" action="/contact" class="panel contact-form">
+    <div class="field"><label>Имя *</label><input name="name" required placeholder="Как к вам обращаться"></div>
+    <div class="field"><label>Email</label><input type="email" name="email" placeholder="name@example.com"></div>
+    <div class="field"><label>Телефон</label><input name="phone" placeholder="+7 ..."></div>
+    <div class="field"><label>Тема</label>
+      <select name="topic">
+        <option value="consultation">Консультация</option>
+        <option value="check">Заявка на проверку</option>
+        <option value="pricing">Вопрос по ценам</option>
+        <option value="other">Другое</option>
+      </select>
+    </div>
+    <div class="field"><label>Бренд</label><input name="brand" placeholder="Например, Chanel"></div>
+    <div class="field"><label>Модель</label><input name="model" placeholder="Если знаете"></div>
+    <div class="field"><label>Сообщение</label><textarea name="message" placeholder="Кратко опишите изделие и вопрос"></textarea></div>
+    <p class="notice">Укажите email или телефон. Отправляя форму, вы соглашаетесь с <a href="/terms">пользовательским соглашением</a> и <a href="/offer">офертой</a>.</p>
+    <button class="btn gold">Отправить заявку</button>
+  </form>
+</main>
+{% endblock %}

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from .config import settings
 from .db import Base, engine, get_db, SessionLocal
-from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Verdict, CertificateStatus, PriceBlock, TextPreset
+from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Verdict, CertificateStatus, PriceBlock, TextPreset, ContactRequest
 from .security import hash_password, verify_password, create_token, read_token
 from .documents import make_certificate, make_report
 
@@ -240,6 +240,61 @@ def offer_page(request: Request):
     return templates.TemplateResponse("offer.html", {"request": request})
 
 
+@app.get("/contact", response_class=HTMLResponse)
+def contact_page(request: Request):
+    return templates.TemplateResponse(
+        "contact.html",
+        {"request": request, "sent": request.query_params.get("sent") == "1"},
+    )
+
+
+@app.post("/contact")
+def contact_submit(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(""),
+    phone: str = Form(""),
+    topic: str = Form("consultation"),
+    brand: str = Form(""),
+    model: str = Form(""),
+    message: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    name = name.strip()
+    email = email.strip()
+    phone = phone.strip()
+    message = message.strip()
+    if not name:
+        raise HTTPException(400, "Укажите имя")
+    if not email and not phone:
+        raise HTTPException(400, "Укажите email или телефон")
+    if topic not in {"consultation", "check", "pricing", "other"}:
+        topic = "other"
+    lead = ContactRequest(
+        name=name[:160],
+        email=email[:255],
+        phone=phone[:80],
+        topic=topic,
+        brand=brand.strip()[:120],
+        model=model.strip()[:160],
+        message=message[:4000],
+        status="NEW",
+    )
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    db.add(
+        AuditEvent(
+            actor_email=email or phone or "public",
+            action="CONTACT_REQUEST_CREATED",
+            entity_type="contact_request",
+            entity_id=str(lead.id),
+        )
+    )
+    db.commit()
+    return RedirectResponse("/contact?sent=1", 303)
+
+
 @app.get("/verify", response_class=HTMLResponse)
 def verify_form(request: Request):
     return templates.TemplateResponse("verify.html", {"request": request, "certificate": None})
@@ -325,6 +380,7 @@ def admin(request: Request, db: Session = Depends(get_db)):
     certs = db.scalars(select(Certificate).order_by(Certificate.id.desc())).all()
     prices = db.scalars(select(PriceBlock).order_by(PriceBlock.sort_order, PriceBlock.id)).all()
     presets = db.scalars(select(TextPreset).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)).all()
+    contacts = db.scalars(select(ContactRequest).order_by(ContactRequest.id.desc())).all()
     active_presets = [p for p in presets if p.active]
     return templates.TemplateResponse(
         "admin.html",
@@ -335,10 +391,65 @@ def admin(request: Request, db: Session = Depends(get_db)):
             "certificates": certs,
             "prices": prices,
             "presets": presets,
+            "contacts": contacts,
             "conclusion_presets": [p for p in active_presets if p.kind == "conclusion"],
             "feature_presets": [p for p in active_presets if p.kind == "notable_features"],
+            "topic_labels": {
+                "consultation": "Консультация",
+                "check": "Заявка на проверку",
+                "pricing": "Вопрос по ценам",
+                "other": "Другое",
+            },
         },
     )
+
+
+@app.post("/admin/contacts/{contact_id}")
+def update_contact(
+    contact_id: int,
+    request: Request,
+    status: str = Form("NEW"),
+    admin_note: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = admin_required(request, db)
+    lead = db.get(ContactRequest, contact_id)
+    if not lead:
+        raise HTTPException(404)
+    if status not in {"NEW", "IN_PROGRESS", "DONE", "SPAM"}:
+        raise HTTPException(400, "Некорректный статус")
+    lead.status = status
+    lead.admin_note = admin_note.strip()
+    db.add(
+        AuditEvent(
+            actor_email=user.email,
+            action="CONTACT_REQUEST_UPDATED",
+            entity_type="contact_request",
+            entity_id=str(lead.id),
+            payload={"status": status},
+        )
+    )
+    db.commit()
+    return RedirectResponse("/admin#contacts", 303)
+
+
+@app.post("/admin/contacts/{contact_id}/delete")
+def delete_contact(contact_id: int, request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    lead = db.get(ContactRequest, contact_id)
+    if not lead:
+        raise HTTPException(404)
+    db.delete(lead)
+    db.add(
+        AuditEvent(
+            actor_email=user.email,
+            action="CONTACT_REQUEST_DELETED",
+            entity_type="contact_request",
+            entity_id=str(contact_id),
+        )
+    )
+    db.commit()
+    return RedirectResponse("/admin#contacts", 303)
 
 
 @app.post("/admin/cases")

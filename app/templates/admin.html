@@ -10,6 +10,42 @@
     <a href="/logout">Выйти</a>
   </div>
 
+  <section class="panel" id="contacts" style="margin-top:28px">
+    <h2 style="font-size:30px;margin-top:0">Заявки с сайта</h2>
+    <p class="muted">Форма обратной связи: <a href="/contact" target="_blank">/contact</a>. Новые сверху.</p>
+    {% if contacts %}
+      {% for lead in contacts %}
+      <form method="post" action="/admin/contacts/{{ lead.id }}" class="card lead-card">
+        <div class="lead-meta">
+          <span><strong>#{{ lead.id }}</strong> {{ lead.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+          <span class="lead-status-{{ lead.status }}">{{ lead.status }}</span>
+          <span>{{ topic_labels.get(lead.topic, lead.topic) }}</span>
+          <span>{{ lead.name }}</span>
+          {% if lead.email %}<span>{{ lead.email }}</span>{% endif %}
+          {% if lead.phone %}<span>{{ lead.phone }}</span>{% endif %}
+          {% if lead.brand or lead.model %}<span>{{ lead.brand }} {{ lead.model }}</span>{% endif %}
+        </div>
+        {% if lead.message %}<p style="font-family:Arial,sans-serif;margin:0 0 12px">{{ lead.message }}</p>{% endif %}
+        <div class="field"><label>Статус</label>
+          <select name="status">
+            <option value="NEW" {% if lead.status=='NEW' %}selected{% endif %}>NEW — новая</option>
+            <option value="IN_PROGRESS" {% if lead.status=='IN_PROGRESS' %}selected{% endif %}>IN_PROGRESS — в работе</option>
+            <option value="DONE" {% if lead.status=='DONE' %}selected{% endif %}>DONE — закрыта</option>
+            <option value="SPAM" {% if lead.status=='SPAM' %}selected{% endif %}>SPAM</option>
+          </select>
+        </div>
+        <div class="field"><label>Заметка администратора</label><textarea name="admin_note">{{ lead.admin_note }}</textarea></div>
+        <div class="hero-actions">
+          <button class="btn gold">Сохранить</button>
+          <button class="btn" formaction="/admin/contacts/{{ lead.id }}/delete" formmethod="post" onclick="return confirm('Удалить заявку?')">Удалить</button>
+        </div>
+      </form>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Пока нет заявок.</p>
+    {% endif %}
+  </section>
+
   <div class="admin-grid" style="margin-top:28px">
     <section class="panel">
       <h2 style="font-size:30px;margin-top:0">Новая завершенная проверка</h2>
