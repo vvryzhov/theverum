@@ -1,0 +1,54 @@
+{% extends "admin_layout.html" %}
+{% block admin_title %}Обзор{% endblock %}
+{% block admin_heading %}Обзор{% endblock %}
+{% block admin_content %}
+<section class="admin-stats">
+  <a class="admin-stat" href="/admin/leads">
+    <span class="admin-stat-label">Новые заявки</span>
+    <span class="admin-stat-value">{{ new_leads_count }}</span>
+  </a>
+  <a class="admin-stat" href="/admin/leads">
+    <span class="admin-stat-label">Всего заявок</span>
+    <span class="admin-stat-value">{{ contacts_count }}</span>
+  </a>
+  <a class="admin-stat" href="/admin/checks">
+    <span class="admin-stat-label">Проверки</span>
+    <span class="admin-stat-value">{{ cases_count }}</span>
+  </a>
+  <a class="admin-stat" href="/admin/checks">
+    <span class="admin-stat-label">Сертификаты</span>
+    <span class="admin-stat-value">{{ certificates_count }}</span>
+  </a>
+</section>
+
+<div class="admin-grid" style="margin-top:24px">
+  <section class="panel">
+    <h2 style="font-size:28px;margin-top:0">Быстрые действия</h2>
+    <div class="hero-actions">
+      <a class="btn gold" href="/admin/checks">Новая проверка</a>
+      <a class="btn" href="/admin/leads">Разбор заявок</a>
+      <a class="btn" href="/admin/prices">Править цены</a>
+      <a class="btn" href="/contact" target="_blank">Форма на сайте</a>
+    </div>
+  </section>
+  <section class="panel">
+    <h2 style="font-size:28px;margin-top:0">Последние заявки</h2>
+    {% if recent_contacts %}
+    <table class="table">
+      <tr><th>Когда</th><th>Кто</th><th>Тема</th><th>Статус</th></tr>
+      {% for lead in recent_contacts %}
+      <tr>
+        <td>{{ lead.created_at.strftime('%d.%m %H:%M') }}</td>
+        <td>{{ lead.name }}</td>
+        <td>{{ topic_labels.get(lead.topic, lead.topic) }}</td>
+        <td class="lead-status-{{ lead.status }}">{{ lead.status }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p style="margin-top:14px"><a href="/admin/leads">Все заявки →</a></p>
+    {% else %}
+    <p class="muted">Заявок пока нет.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

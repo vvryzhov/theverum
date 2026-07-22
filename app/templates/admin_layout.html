@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{% block admin_title %}Админка{% endblock %} — The Verum{% endblock %}
+{% block content %}
+<main class="container section page admin-shell">
+  <div class="admin-header">
+    <div>
+      <p class="muted">АДМИНИСТРАТОР</p>
+      <h1 class="admin-title">{% block admin_heading %}Админка{% endblock %}</h1>
+    </div>
+    <div class="admin-header-actions">
+      <a class="btn" href="/" target="_blank">Сайт</a>
+      <a class="btn" href="/logout">Выйти</a>
+    </div>
+  </div>
+
+  <nav class="admin-nav" aria-label="Разделы админки">
+    <a class="admin-nav-link {% if admin_section == 'home' %}is-active{% endif %}" href="/admin">Обзор</a>
+    <a class="admin-nav-link {% if admin_section == 'leads' %}is-active{% endif %}" href="/admin/leads">
+      Заявки{% if new_leads_count %} <span class="admin-nav-count">{{ new_leads_count }}</span>{% endif %}
+    </a>
+    <a class="admin-nav-link {% if admin_section == 'checks' %}is-active{% endif %}" href="/admin/checks">Проверки</a>
+    <a class="admin-nav-link {% if admin_section == 'prices' %}is-active{% endif %}" href="/admin/prices">Цены</a>
+    <a class="admin-nav-link {% if admin_section == 'presets' %}is-active{% endif %}" href="/admin/presets">Пресеты</a>
+  </nav>
+
+  {% block admin_content %}{% endblock %}
+</main>
+{% endblock %}

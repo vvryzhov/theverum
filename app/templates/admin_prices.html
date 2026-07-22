@@ -1,0 +1,37 @@
+{% extends "admin_layout.html" %}
+{% block admin_title %}Цены{% endblock %}
+{% block admin_heading %}Блоки цен{% endblock %}
+{% block admin_content %}
+<p class="muted">Отображаются на публичной странице <a href="/pricing" target="_blank">/pricing</a>.</p>
+<div class="price-admin-grid">
+  {% for p in prices %}
+  <form method="post" action="/admin/prices/{{ p.id }}" class="price-edit card">
+    <div class="field"><label>Название</label><input name="title" value="{{ p.title }}" required></div>
+    <div class="field"><label>Цена</label><input name="price_label" value="{{ p.price_label }}" required></div>
+    <div class="field"><label>Описание</label><textarea name="description">{{ p.description }}</textarea></div>
+    <div class="field"><label>Пункты (каждый с новой строки)</label><textarea name="features">{{ p.features }}</textarea></div>
+    <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="{{ p.sort_order }}"></div>
+    <div class="field"><label>Активен</label>
+      <select name="active">
+        <option value="1" {% if p.active %}selected{% endif %}>Да</option>
+        <option value="0" {% if not p.active %}selected{% endif %}>Нет</option>
+      </select>
+    </div>
+    <div class="hero-actions">
+      <button class="btn gold">Сохранить</button>
+      <button class="btn" formaction="/admin/prices/{{ p.id }}/delete" formmethod="post" onclick="return confirm('Удалить блок?')">Удалить</button>
+    </div>
+  </form>
+  {% endfor %}
+
+  <form method="post" action="/admin/prices" class="price-edit card">
+    <h3 style="margin-top:0">Новый блок</h3>
+    <div class="field"><label>Название</label><input name="title" required placeholder="Дистанционная проверка"></div>
+    <div class="field"><label>Цена</label><input name="price_label" required placeholder="от 4 900 ₽"></div>
+    <div class="field"><label>Описание</label><textarea name="description"></textarea></div>
+    <div class="field"><label>Пункты (каждый с новой строки)</label><textarea name="features"></textarea></div>
+    <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="10"></div>
+    <button class="btn gold">Добавить</button>
+  </form>
+</div>
+{% endblock %}

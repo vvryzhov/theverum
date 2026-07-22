@@ -392,34 +392,94 @@ def logout():
     return r
 
 
+TOPIC_LABELS = {
+    "consultation": "Консультация",
+    "check": "Заявка на проверку",
+    "pricing": "Вопрос по ценам",
+    "other": "Другое",
+}
+
+
+def admin_nav_context(db: Session, section: str) -> dict:
+    new_leads = db.scalars(select(ContactRequest).where(ContactRequest.status == "NEW")).all()
+    return {
+        "admin_section": section,
+        "new_leads_count": len(new_leads),
+        "topic_labels": TOPIC_LABELS,
+    }
+
+
 @app.get("/admin", response_class=HTMLResponse)
-def admin(request: Request, db: Session = Depends(get_db)):
+def admin_home(request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    contacts = db.scalars(select(ContactRequest).order_by(ContactRequest.id.desc()).limit(5)).all()
+    cases_count = db.query(AuthenticationCase).count()
+    certificates_count = db.query(Certificate).count()
+    contacts_count = db.query(ContactRequest).count()
+    ctx = admin_nav_context(db, "home")
+    return templates.TemplateResponse(
+        "admin_home.html",
+        {
+            "request": request,
+            "user": user,
+            "recent_contacts": contacts,
+            "cases_count": cases_count,
+            "certificates_count": certificates_count,
+            "contacts_count": contacts_count,
+            **ctx,
+        },
+    )
+
+
+@app.get("/admin/leads", response_class=HTMLResponse)
+def admin_leads(request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    contacts = db.scalars(select(ContactRequest).order_by(ContactRequest.id.desc())).all()
+    return templates.TemplateResponse(
+        "admin_leads.html",
+        {"request": request, "user": user, "contacts": contacts, **admin_nav_context(db, "leads")},
+    )
+
+
+@app.get("/admin/checks", response_class=HTMLResponse)
+def admin_checks(request: Request, db: Session = Depends(get_db)):
     user = admin_required(request, db)
     cases = db.scalars(select(AuthenticationCase).order_by(AuthenticationCase.id.desc())).all()
     certs = db.scalars(select(Certificate).order_by(Certificate.id.desc())).all()
-    prices = db.scalars(select(PriceBlock).order_by(PriceBlock.sort_order, PriceBlock.id)).all()
-    presets = db.scalars(select(TextPreset).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)).all()
-    contacts = db.scalars(select(ContactRequest).order_by(ContactRequest.id.desc())).all()
-    active_presets = [p for p in presets if p.active]
+    presets = db.scalars(
+        select(TextPreset).where(TextPreset.active == True).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)
+    ).all()
     return templates.TemplateResponse(
-        "admin.html",
+        "admin_checks.html",
         {
             "request": request,
             "user": user,
             "cases": cases,
             "certificates": certs,
-            "prices": prices,
-            "presets": presets,
-            "contacts": contacts,
-            "conclusion_presets": [p for p in active_presets if p.kind == "conclusion"],
-            "feature_presets": [p for p in active_presets if p.kind == "notable_features"],
-            "topic_labels": {
-                "consultation": "Консультация",
-                "check": "Заявка на проверку",
-                "pricing": "Вопрос по ценам",
-                "other": "Другое",
-            },
+            "conclusion_presets": [p for p in presets if p.kind == "conclusion"],
+            "feature_presets": [p for p in presets if p.kind == "notable_features"],
+            **admin_nav_context(db, "checks"),
         },
+    )
+
+
+@app.get("/admin/prices", response_class=HTMLResponse)
+def admin_prices_page(request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    prices = db.scalars(select(PriceBlock).order_by(PriceBlock.sort_order, PriceBlock.id)).all()
+    return templates.TemplateResponse(
+        "admin_prices.html",
+        {"request": request, "user": user, "prices": prices, **admin_nav_context(db, "prices")},
+    )
+
+
+@app.get("/admin/presets", response_class=HTMLResponse)
+def admin_presets_page(request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    presets = db.scalars(select(TextPreset).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)).all()
+    return templates.TemplateResponse(
+        "admin_presets.html",
+        {"request": request, "user": user, "presets": presets, **admin_nav_context(db, "presets")},
     )
 
 
@@ -449,7 +509,7 @@ def update_contact(
         )
     )
     db.commit()
-    return RedirectResponse("/admin#contacts", 303)
+    return RedirectResponse("/admin/leads", 303)
 
 
 @app.post("/admin/contacts/{contact_id}/delete")
@@ -468,7 +528,7 @@ def delete_contact(contact_id: int, request: Request, db: Session = Depends(get_
         )
     )
     db.commit()
-    return RedirectResponse("/admin#contacts", 303)
+    return RedirectResponse("/admin/leads", 303)
 
 
 @app.post("/admin/cases")
@@ -513,7 +573,7 @@ async def create_case(
     db.refresh(case)
     db.add(AuditEvent(actor_email=user.email, action="CASE_CREATED", entity_type="case", entity_id=str(case.id)))
     db.commit()
-    return RedirectResponse("/admin", 303)
+    return RedirectResponse("/admin/checks", 303)
 
 
 @app.post("/admin/cases/{case_id}/photo")
@@ -533,7 +593,7 @@ async def upload_case_photo(
         regenerate_docs(cert, case)
     db.add(AuditEvent(actor_email=user.email, action="CASE_PHOTO_UPDATED", entity_type="case", entity_id=str(case.id)))
     db.commit()
-    return RedirectResponse("/admin", 303)
+    return RedirectResponse("/admin/checks", 303)
 
 
 @app.get("/admin/certificates/{cert_id}/edit", response_class=HTMLResponse)
@@ -553,6 +613,7 @@ def edit_certificate_page(cert_id: int, request: Request, db: Session = Depends(
             "conclusion_presets": [p for p in presets if p.kind == "conclusion"],
             "feature_presets": [p for p in presets if p.kind == "notable_features"],
             "issued_at_value": cert.issued_at.strftime("%Y-%m-%dT%H:%M"),
+            **admin_nav_context(db, "checks"),
         },
     )
 
@@ -682,7 +743,7 @@ def revoke(cert_id: int, request: Request, reason: str = Form("Пересмот�
         )
     )
     db.commit()
-    return RedirectResponse("/admin", 303)
+    return RedirectResponse("/admin/checks", 303)
 
 
 @app.post("/admin/prices")
@@ -709,7 +770,7 @@ def create_price(
     db.refresh(block)
     db.add(AuditEvent(actor_email=user.email, action="PRICE_CREATED", entity_type="price_block", entity_id=str(block.id)))
     db.commit()
-    return RedirectResponse("/admin#prices", 303)
+    return RedirectResponse("/admin/prices", 303)
 
 
 @app.post("/admin/prices/{price_id}")
@@ -736,7 +797,7 @@ def update_price(
     block.active = active == "1"
     db.add(AuditEvent(actor_email=user.email, action="PRICE_UPDATED", entity_type="price_block", entity_id=str(block.id)))
     db.commit()
-    return RedirectResponse("/admin#prices", 303)
+    return RedirectResponse("/admin/prices", 303)
 
 
 @app.post("/admin/prices/{price_id}/delete")
@@ -748,7 +809,7 @@ def delete_price(price_id: int, request: Request, db: Session = Depends(get_db))
     db.delete(block)
     db.add(AuditEvent(actor_email=user.email, action="PRICE_DELETED", entity_type="price_block", entity_id=str(price_id)))
     db.commit()
-    return RedirectResponse("/admin#prices", 303)
+    return RedirectResponse("/admin/prices", 303)
 
 
 @app.post("/admin/presets")
@@ -769,7 +830,7 @@ def create_preset(
     db.refresh(preset)
     db.add(AuditEvent(actor_email=user.email, action="PRESET_CREATED", entity_type="text_preset", entity_id=str(preset.id)))
     db.commit()
-    return RedirectResponse("/admin#presets", 303)
+    return RedirectResponse("/admin/presets", 303)
 
 
 @app.post("/admin/presets/{preset_id}")
@@ -796,7 +857,7 @@ def update_preset(
     preset.active = active == "1"
     db.add(AuditEvent(actor_email=user.email, action="PRESET_UPDATED", entity_type="text_preset", entity_id=str(preset.id)))
     db.commit()
-    return RedirectResponse("/admin#presets", 303)
+    return RedirectResponse("/admin/presets", 303)
 
 
 @app.post("/admin/presets/{preset_id}/delete")
@@ -808,7 +869,7 @@ def delete_preset(preset_id: int, request: Request, db: Session = Depends(get_db
     db.delete(preset)
     db.add(AuditEvent(actor_email=user.email, action="PRESET_DELETED", entity_type="text_preset", entity_id=str(preset_id)))
     db.commit()
-    return RedirectResponse("/admin#presets", 303)
+    return RedirectResponse("/admin/presets", 303)
 
 
 @app.get("/api/certificates/{number}")

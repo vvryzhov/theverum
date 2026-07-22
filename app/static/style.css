@@ -97,7 +97,38 @@ textarea{min-height:90px;resize:vertical}
 .facts dd{margin:0}
 .cert-photo-wrap{margin:18px 0 8px;display:flex;justify-content:center;align-items:center;background:#fff;border:1px solid var(--line);padding:12px;min-height:120px}
 .cert-photo{display:block;max-width:100%;width:auto;height:auto;max-height:420px;object-fit:contain}
+.admin-shell{padding-top:36px}
+.admin-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.admin-title{font-size:clamp(36px,5vw,52px);margin:0}
+.admin-header-actions{display:flex;gap:10px;flex-wrap:wrap}
+.admin-nav{
+  display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 28px;padding:10px;
+  background:rgba(255,255,255,.75);border:1px solid var(--line);
+}
+.admin-nav-link{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;
+  border:1px solid transparent;color:var(--muted);
+}
+.admin-nav-link:hover{color:var(--ink);border-color:var(--line);background:#fff}
+.admin-nav-link.is-active{color:var(--ink);border-color:#b79a57;background:#fffdf8;font-weight:600}
+.admin-nav-count{
+  display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;
+  border-radius:999px;background:#a8843d;color:#fff;font-size:12px;font-weight:700;
+}
+.admin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.admin-stat{
+  display:flex;flex-direction:column;gap:10px;padding:22px;border:1px solid var(--line);
+  background:rgba(255,255,255,.92);text-decoration:none;color:inherit;
+  transition:border-color .2s ease, transform .2s ease;
+}
+.admin-stat:hover{border-color:#a8843d;transform:translateY(-2px)}
+.admin-stat-label{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:var(--muted)}
+.admin-stat-value{font-size:40px;line-height:1}
 .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){
+  .admin-stats{grid-template-columns:1fr 1fr}
+}
 .table{width:100%;border-collapse:collapse;font-size:13px;font-family:Arial,sans-serif}
 .table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .inline-upload{display:flex;flex-direction:column;gap:6px;margin-top:8px}

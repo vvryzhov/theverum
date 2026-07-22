@@ -1,0 +1,142 @@
+{% extends "admin_layout.html" %}
+{% block admin_title %}Проверки{% endblock %}
+{% block admin_heading %}Проверки и сертификаты{% endblock %}
+{% block admin_content %}
+<div class="admin-grid">
+  <section class="panel">
+    <h2 style="font-size:28px;margin-top:0">Новая завершенная проверка</h2>
+    <form id="case-form" method="post" action="/admin/cases" enctype="multipart/form-data">
+      <div class="field"><label>Бренд</label><input name="brand" required></div>
+      <div class="field"><label>Модель</label><input name="model"></div>
+      <div class="field"><label>Категория</label>
+        <select name="category">
+          <option>Сумка</option><option>Часы</option><option>Украшение</option>
+          <option>Одежда</option><option>Обувь</option><option>Аксессуар</option>
+        </select>
+      </div>
+      <div class="field"><label>Цвет</label><input name="color"></div>
+      <div class="field"><label>Материал</label><input name="material"></div>
+      <div class="field"><label>Отображаемый идентификатор</label><input name="serial_display" value="Не предусмотрен / не указан"></div>
+      <div class="field"><label>Тип идентификатора</label>
+        <select name="identifier_mode">
+          <option value="NONE">Нет / не предусмотрен</option>
+          <option value="SERIAL">Серийный номер</option>
+          <option value="NFC">NFC</option>
+          <option value="QR">QR</option>
+          <option value="MIXED">Несколько</option>
+        </select>
+      </div>
+      <div class="field"><label>Комментарий по идентификатору</label><textarea name="identifier_notes"></textarea></div>
+      <div class="field"><label>Результат</label>
+        <select name="verdict">
+          <option value="AUTHENTIC">Подлинность подтверждена</option>
+          <option value="NOT_AUTHENTIC">Подлинность не подтверждена</option>
+          <option value="INCONCLUSIVE">Недостаточно данных</option>
+          <option value="PHYSICAL_REVIEW">Требуется очная проверка</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Пресет краткого заключения</label>
+        <select id="preset-conclusion">
+          <option value="">— выбрать шаблон —</option>
+          {% for p in conclusion_presets %}
+          <option value="{{ p.id }}">{{ p.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>Краткое заключение</label><textarea name="conclusion"></textarea></div>
+
+      <div class="field">
+        <label>Пресет краткого отчета</label>
+        <select id="preset-notable">
+          <option value="">— выбрать шаблон —</option>
+          {% for p in feature_presets %}
+          <option value="{{ p.id }}">{{ p.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>Важные особенности</label><textarea name="notable_features"></textarea></div>
+
+      <p class="notice">Плейсхолдеры: {{"{{brand}}"}}, {{"{{model}}"}}, {{"{{category}}"}}, {{"{{color}}"}}, {{"{{material}}"}}, {{"{{serial}}"}}, {{"{{identifier}}"}}.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn" id="refill-presets">Подставить данные в выбранные пресеты</button>
+      </p>
+
+      <div class="field"><label>Фото для сертификата</label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+      <button class="btn gold">Сохранить проверку</button>
+    </form>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2 style="font-size:28px;margin-top:0">Проверки</h2>
+      <table class="table">
+        <tr><th>№</th><th>Изделие</th><th>Фото</th><th>Результат</th><th></th></tr>
+        {% for c in cases %}
+        <tr>
+          <td>{{ c.case_number }}</td>
+          <td>{{ c.brand }} {{ c.model }}</td>
+          <td>
+            {% if c.photo_path %}<span class="muted">есть</span>{% else %}<span class="muted">нет</span>{% endif %}
+            <form method="post" action="/admin/cases/{{ c.id }}/photo" enctype="multipart/form-data" class="inline-upload">
+              <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required>
+              <button class="btn">Загрузить</button>
+            </form>
+          </td>
+          <td>{{ c.verdict }}</td>
+          <td style="white-space:nowrap">
+            {% set issued = certificates|selectattr('case_id', 'equalto', c.id)|list %}
+            {% if issued %}
+            <a class="btn" href="/admin/certificates/{{ issued[0].id }}/edit">Править</a>
+            {% else %}
+            <form method="post" action="/admin/cases/{{ c.id }}/issue" style="display:inline">
+              <button class="btn">Выпустить</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h2 style="font-size:28px;margin-top:0">Сертификаты</h2>
+      <table class="table">
+        <tr><th>№</th><th>Дата</th><th>Статус</th><th></th></tr>
+        {% for c in certificates %}
+        <tr>
+          <td><a href="/v/{{ c.public_token }}">{{ c.certificate_number }}</a></td>
+          <td>{{ c.issued_at.strftime('%d.%m.%Y') }}</td>
+          <td>{{ c.status }}</td>
+          <td style="white-space:nowrap">
+            <a class="btn" href="/admin/certificates/{{ c.id }}/edit">Править</a>
+            {% if c.status=='ACTIVE' %}
+            <form method="post" action="/admin/certificates/{{ c.id }}/revoke" style="display:inline">
+              <input type="hidden" name="reason" value="Пересмотр заключения">
+              <button class="btn">Отозвать</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+</div>
+<script>
+window.THEVERUM_PRESETS = {
+  conclusion: [
+    {% for p in conclusion_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  notable_features: [
+    {% for p in feature_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+};
+</script>
+<script src="/static/admin-presets.js"></script>
+{% endblock %}
