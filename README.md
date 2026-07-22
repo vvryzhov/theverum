@@ -22,11 +22,33 @@ cp .env.example .env
 # Обязательно замените пароли и SECRET_KEY
 docker compose up -d --build
 ```
-Сайт: http://SERVER:8080
+Сайт: https://theverum.ru
 
-Демо-сертификат: http://SERVER:8080/v/demo-certificate
+Демо-сертификат: https://theverum.ru/v/demo-certificate
 
 Админ: значения ADMIN_EMAIL и ADMIN_PASSWORD из `.env`.
+
+## Домен и HTTPS
+На сервере с уже работающим `docker compose` (порт 8080):
+
+```bash
+cd ~/theverum
+git pull
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+sudo cp deploy/nginx-theverum.ru.conf /etc/nginx/sites-available/theverum.ru
+sudo ln -sf /etc/nginx/sites-available/theverum.ru /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d theverum.ru -d www.theverum.ru
+```
+
+В `.env` на сервере выставьте:
+```
+APP_URL=https://theverum.ru
+COOKIE_SECURE=true
+```
+После правки: `docker compose up -d`
 
 ## Важно
 Это рабочая основа v1, а не автоматически сертифицированная production-система. Перед реальным запуском требуется внешний аудит безопасности, юридическая проверка документов, настройка HTTPS, резервного копирования и политики хранения персональных данных.
