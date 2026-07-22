@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from .config import settings
 from .db import Base, engine, get_db, SessionLocal
-from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Verdict, CertificateStatus, PriceBlock
+from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Verdict, CertificateStatus, PriceBlock, TextPreset
 from .security import hash_password, verify_password, create_token, read_token
 from .documents import make_certificate, make_report
 
@@ -98,6 +98,59 @@ def seed():
                 ),
             ]
             db.add_all(defaults)
+            db.commit()
+        if not db.scalar(select(TextPreset).limit(1)):
+            preset_defaults = [
+                TextPreset(
+                    kind="conclusion",
+                    title="Подлинность подтверждена",
+                    body="По результатам проверки изделия {{brand}} {{model}} подлинность подтверждена. Конструкция, материалы, маркировка и исполнение согласуются с заявленной моделью и периодом выпуска. Существенных противоречий не выявлено.",
+                    sort_order=1,
+                ),
+                TextPreset(
+                    kind="conclusion",
+                    title="Подлинность не подтверждена",
+                    body="По результатам проверки изделия {{brand}} {{model}} подлинность не подтверждена. Выявлены признаки, которые не согласуются с эталонными характеристиками заявленной модели.",
+                    sort_order=2,
+                ),
+                TextPreset(
+                    kind="conclusion",
+                    title="Недостаточно данных",
+                    body="По представленным материалам для изделия {{brand}} {{model}} недостаточно данных для однозначного вывода. Требуются дополнительные ракурсы, маркировки или очный осмотр.",
+                    sort_order=3,
+                ),
+                TextPreset(
+                    kind="conclusion",
+                    title="Требуется очная экспертиза",
+                    body="Дистанционных материалов по изделию {{brand}} {{model}} недостаточно для финального заключения. Рекомендуется очная экспертиза с физическим осмотром ключевых узлов.",
+                    sort_order=4,
+                ),
+                TextPreset(
+                    kind="notable_features",
+                    title="Стандартное обоснование (подлинно)",
+                    body="Проверены общий вид, конструкция, материалы ({{material}}), цвет ({{color}}), фурнитура и маркировка. Идентификатор: {{serial}}. Признаки согласуются с моделью {{brand}} {{model}}. Отдельные идентификаторы оценивались только в контексте бренда и периода выпуска.",
+                    sort_order=1,
+                ),
+                TextPreset(
+                    kind="notable_features",
+                    title="Стандартное обоснование (не подтверждено)",
+                    body="При анализе {{category}} {{brand}} {{model}} выявлены несоответствия по одному или нескольким признакам: конструкция, материалы, маркировка или фурнитура. Идентификатор {{serial}} не снимает выявленных противоречий.",
+                    sort_order=2,
+                ),
+                TextPreset(
+                    kind="notable_features",
+                    title="Недостаточно материалов",
+                    body="Доступный комплект фото/видео по {{brand}} {{model}} не позволяет уверенно оценить скрытые узлы, маркировку и/или идентификаторы. Для завершения проверки нужны дополнительные материалы либо очный осмотр.",
+                    sort_order=3,
+                ),
+                TextPreset(
+                    kind="notable_features",
+                    title="С акцентом на идентификатор",
+                    body="Идентификатор {{serial}} рассмотрен в контексте модели {{brand}} {{model}}. Наличие или отсутствие номера/NFC/QR само по себе не является единственным критерием. Итоговый вывод сформирован по совокупности признаков: конструкция, материалы ({{material}}), маркировка и качество исполнения.",
+                    sort_order=4,
+                ),
+            ]
+            db.add_all(preset_defaults)
             db.commit()
     finally:
         db.close()
@@ -251,9 +304,20 @@ def admin(request: Request, db: Session = Depends(get_db)):
     cases = db.scalars(select(AuthenticationCase).order_by(AuthenticationCase.id.desc())).all()
     certs = db.scalars(select(Certificate).order_by(Certificate.id.desc())).all()
     prices = db.scalars(select(PriceBlock).order_by(PriceBlock.sort_order, PriceBlock.id)).all()
+    presets = db.scalars(select(TextPreset).order_by(TextPreset.kind, TextPreset.sort_order, TextPreset.id)).all()
+    active_presets = [p for p in presets if p.active]
     return templates.TemplateResponse(
         "admin.html",
-        {"request": request, "user": user, "cases": cases, "certificates": certs, "prices": prices},
+        {
+            "request": request,
+            "user": user,
+            "cases": cases,
+            "certificates": certs,
+            "prices": prices,
+            "presets": presets,
+            "conclusion_presets": [p for p in active_presets if p.kind == "conclusion"],
+            "feature_presets": [p for p in active_presets if p.kind == "notable_features"],
+        },
     )
 
 
@@ -439,6 +503,66 @@ def delete_price(price_id: int, request: Request, db: Session = Depends(get_db))
     db.add(AuditEvent(actor_email=user.email, action="PRICE_DELETED", entity_type="price_block", entity_id=str(price_id)))
     db.commit()
     return RedirectResponse("/admin#prices", 303)
+
+
+@app.post("/admin/presets")
+def create_preset(
+    request: Request,
+    kind: str = Form(...),
+    title: str = Form(...),
+    body: str = Form(...),
+    sort_order: int = Form(0),
+    db: Session = Depends(get_db),
+):
+    user = admin_required(request, db)
+    if kind not in {"conclusion", "notable_features"}:
+        raise HTTPException(400, "Некорректный тип пресета")
+    preset = TextPreset(kind=kind, title=title.strip(), body=body.strip(), sort_order=sort_order, active=True)
+    db.add(preset)
+    db.commit()
+    db.refresh(preset)
+    db.add(AuditEvent(actor_email=user.email, action="PRESET_CREATED", entity_type="text_preset", entity_id=str(preset.id)))
+    db.commit()
+    return RedirectResponse("/admin#presets", 303)
+
+
+@app.post("/admin/presets/{preset_id}")
+def update_preset(
+    preset_id: int,
+    request: Request,
+    kind: str = Form(...),
+    title: str = Form(...),
+    body: str = Form(...),
+    sort_order: int = Form(0),
+    active: str = Form("1"),
+    db: Session = Depends(get_db),
+):
+    user = admin_required(request, db)
+    preset = db.get(TextPreset, preset_id)
+    if not preset:
+        raise HTTPException(404)
+    if kind not in {"conclusion", "notable_features"}:
+        raise HTTPException(400, "Некорректный тип пресета")
+    preset.kind = kind
+    preset.title = title.strip()
+    preset.body = body.strip()
+    preset.sort_order = sort_order
+    preset.active = active == "1"
+    db.add(AuditEvent(actor_email=user.email, action="PRESET_UPDATED", entity_type="text_preset", entity_id=str(preset.id)))
+    db.commit()
+    return RedirectResponse("/admin#presets", 303)
+
+
+@app.post("/admin/presets/{preset_id}/delete")
+def delete_preset(preset_id: int, request: Request, db: Session = Depends(get_db)):
+    user = admin_required(request, db)
+    preset = db.get(TextPreset, preset_id)
+    if not preset:
+        raise HTTPException(404)
+    db.delete(preset)
+    db.add(AuditEvent(actor_email=user.email, action="PRESET_DELETED", entity_type="text_preset", entity_id=str(preset_id)))
+    db.commit()
+    return RedirectResponse("/admin#presets", 303)
 
 
 @app.get("/api/certificates/{number}")

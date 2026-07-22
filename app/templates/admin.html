@@ -13,7 +13,7 @@
   <div class="admin-grid" style="margin-top:28px">
     <section class="panel">
       <h2 style="font-size:30px;margin-top:0">Новая завершенная проверка</h2>
-      <form method="post" action="/admin/cases" enctype="multipart/form-data">
+      <form id="case-form" method="post" action="/admin/cases" enctype="multipart/form-data">
         <div class="field"><label>Бренд</label><input name="brand" required></div>
         <div class="field"><label>Модель</label><input name="model"></div>
         <div class="field"><label>Категория</label>
@@ -43,8 +43,34 @@
             <option value="PHYSICAL_REVIEW">Требуется очная проверка</option>
           </select>
         </div>
+
+        <div class="field">
+          <label>Пресет краткого заключения</label>
+          <select id="preset-conclusion">
+            <option value="">— выбрать шаблон —</option>
+            {% for p in conclusion_presets %}
+            <option value="{{ p.id }}">{{ p.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="field"><label>Краткое заключение</label><textarea name="conclusion"></textarea></div>
+
+        <div class="field">
+          <label>Пресет краткого отчета (важные особенности)</label>
+          <select id="preset-notable">
+            <option value="">— выбрать шаблон —</option>
+            {% for p in feature_presets %}
+            <option value="{{ p.id }}">{{ p.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="field"><label>Важные особенности</label><textarea name="notable_features"></textarea></div>
+
+        <p class="notice">В шаблонах работают плейсхолдеры: {{"{{brand}}"}}, {{"{{model}}"}}, {{"{{category}}"}}, {{"{{color}}"}}, {{"{{material}}"}}, {{"{{serial}}"}}, {{"{{identifier}}"}}.</p>
+        <p class="hero-actions">
+          <button type="button" class="btn" id="refill-presets">Подставить данные в выбранные пресеты</button>
+        </p>
+
         <div class="field"><label>Фото для сертификата</label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
         <button class="btn gold">Сохранить проверку</button>
       </form>
@@ -100,6 +126,51 @@
     </section>
   </div>
 
+  <section class="panel" id="presets" style="margin-top:28px">
+    <h2 style="font-size:30px;margin-top:0">Пресеты текстов</h2>
+    <p class="muted">Шаблоны для краткого заключения и блока «важные особенности» в отчёте. Можно править и добавлять свои.</p>
+
+    <div class="price-admin-grid">
+      {% for p in presets %}
+      <form method="post" action="/admin/presets/{{ p.id }}" class="price-edit card">
+        <div class="field"><label>Тип</label>
+          <select name="kind">
+            <option value="conclusion" {% if p.kind=='conclusion' %}selected{% endif %}>Краткое заключение</option>
+            <option value="notable_features" {% if p.kind=='notable_features' %}selected{% endif %}>Краткий отчет / особенности</option>
+          </select>
+        </div>
+        <div class="field"><label>Название</label><input name="title" value="{{ p.title }}" required></div>
+        <div class="field"><label>Текст шаблона</label><textarea name="body" rows="6">{{ p.body }}</textarea></div>
+        <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="{{ p.sort_order }}"></div>
+        <div class="field"><label>Активен</label>
+          <select name="active">
+            <option value="1" {% if p.active %}selected{% endif %}>Да</option>
+            <option value="0" {% if not p.active %}selected{% endif %}>Нет</option>
+          </select>
+        </div>
+        <div class="hero-actions">
+          <button class="btn gold">Сохранить</button>
+          <button class="btn" formaction="/admin/presets/{{ p.id }}/delete" formmethod="post" onclick="return confirm('Удалить пресет?')">Удалить</button>
+        </div>
+      </form>
+      {% endfor %}
+
+      <form method="post" action="/admin/presets" class="price-edit card">
+        <h3 style="margin-top:0">Новый пресет</h3>
+        <div class="field"><label>Тип</label>
+          <select name="kind">
+            <option value="conclusion">Краткое заключение</option>
+            <option value="notable_features">Краткий отчет / особенности</option>
+          </select>
+        </div>
+        <div class="field"><label>Название</label><input name="title" required placeholder="Подлинность подтверждена"></div>
+        <div class="field"><label>Текст шаблона</label><textarea name="body" rows="6" placeholder="По результатам проверки изделия {{'{{brand}}'}} {{'{{model}}'}} ..."></textarea></div>
+        <div class="field"><label>Порядок</label><input type="number" name="sort_order" value="10"></div>
+        <button class="btn gold">Добавить</button>
+      </form>
+    </div>
+  </section>
+
   <section class="panel" id="prices" style="margin-top:28px">
     <h2 style="font-size:30px;margin-top:0">Блоки цен</h2>
     <p class="muted">Эти блоки отображаются на публичной странице <a href="/pricing">/pricing</a>.</p>
@@ -137,4 +208,19 @@
     </div>
   </section>
 </main>
+<script>
+window.THEVERUM_PRESETS = {
+  conclusion: [
+    {% for p in conclusion_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  notable_features: [
+    {% for p in feature_presets %}
+    {id: {{ p.id }}, title: {{ p.title|tojson }}, body: {{ p.body|tojson }}}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+};
+</script>
+<script src="/static/admin-presets.js"></script>
 {% endblock %}
