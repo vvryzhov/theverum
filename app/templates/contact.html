@@ -9,8 +9,22 @@
   {% if sent %}
   <div class="status active">Заявка отправлена. Мы ответим на указанные контакты.</div>
   {% endif %}
+  {% if error == 'rate' %}
+  <div class="status revoked">Слишком много заявок с вашего адреса. Попробуйте через час.</div>
+  {% elif error == 'token' %}
+  <div class="status revoked">Форма устарела. Обновите страницу и отправьте ещё раз.</div>
+  {% elif error == 'name' %}
+  <div class="status revoked">Укажите имя.</div>
+  {% elif error == 'contact' %}
+  <div class="status revoked">Укажите email или телефон.</div>
+  {% endif %}
 
-  <form method="post" action="/contact" class="panel contact-form">
+  <form method="post" action="/contact" class="panel contact-form" autocomplete="on">
+    <input type="hidden" name="form_token" value="{{ form_token }}">
+    <div class="hp-field" aria-hidden="true">
+      <label>Сайт компании</label>
+      <input type="text" name="company_url" value="" tabindex="-1" autocomplete="off">
+    </div>
     <div class="field"><label>Имя *</label><input name="name" required placeholder="Как к вам обращаться"></div>
     <div class="field"><label>Email</label><input type="email" name="email" placeholder="name@example.com"></div>
     <div class="field"><label>Телефон</label><input name="phone" placeholder="+7 ..."></div>

@@ -13,6 +13,7 @@ from .db import Base, engine, get_db, SessionLocal
 from .models import User, AuthenticationCase, Certificate, AuditEvent, Role, Verdict, CertificateStatus, PriceBlock, TextPreset, ContactRequest
 from .security import hash_password, verify_password, create_token, read_token
 from .documents import make_certificate, make_report
+from .spam import make_form_token, reject_contact_spam
 
 app = FastAPI(title="The Verum", version="1.0.0")
 Base.metadata.create_all(bind=engine)
@@ -263,7 +264,12 @@ def offer_page(request: Request):
 def contact_page(request: Request):
     return templates.TemplateResponse(
         "contact.html",
-        {"request": request, "sent": request.query_params.get("sent") == "1"},
+        {
+            "request": request,
+            "sent": request.query_params.get("sent") == "1",
+            "error": request.query_params.get("error"),
+            "form_token": make_form_token(),
+        },
     )
 
 
@@ -277,16 +283,33 @@ def contact_submit(
     brand: str = Form(""),
     model: str = Form(""),
     message: str = Form(""),
+    company_url: str = Form(""),
+    form_token: str = Form(""),
     db: Session = Depends(get_db),
 ):
     name = name.strip()
     email = email.strip()
     phone = phone.strip()
     message = message.strip()
+    spam_reason = reject_contact_spam(
+        request,
+        honeypot=company_url,
+        form_token=form_token,
+        name=name,
+        email=email,
+        message=message,
+    )
+    if spam_reason in {"honeypot", "content"}:
+        # Silent success for bots so they do not retry smarter.
+        return RedirectResponse("/contact?sent=1", 303)
+    if spam_reason == "token":
+        return RedirectResponse("/contact?error=token", 303)
+    if spam_reason == "rate":
+        return RedirectResponse("/contact?error=rate", 303)
     if not name:
-        raise HTTPException(400, "Укажите имя")
+        return RedirectResponse("/contact?error=name", 303)
     if not email and not phone:
-        raise HTTPException(400, "Укажите email или телефон")
+        return RedirectResponse("/contact?error=contact", 303)
     if topic not in {"consultation", "check", "pricing", "other"}:
         topic = "other"
     lead = ContactRequest(
